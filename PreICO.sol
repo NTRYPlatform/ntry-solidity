@@ -101,7 +101,7 @@ contract PreICO {
     function addBonuses(uint256 _amount) returns(uint256){
         uint256 reward;
         var (x, y) = (reward,reward);                // define type at compile at time
-        if(remainingTokens > 200000000 * 1 ether){
+        if(remainingTokens > 2000000 * 1 ether){
             (x, y) = levelOneBonus(_amount);
              reward += x;
             if(y != 0){
@@ -112,7 +112,7 @@ contract PreICO {
                 }
             }
             return reward;
-        }else if(remainingTokens > 100000000 * 1 ether){
+        }else if(remainingTokens > 1000000 * 1 ether){
             (x, y) = levelTwoBonus(_amount);
             if(y != 0){
                 return x+levelThreeBonus(y);
@@ -126,7 +126,7 @@ contract PreICO {
     /* Add 125% bonus */
     /// @param _amount NTRY tokens inverster have purchased
     function levelOneBonus(uint256 _amount)returns(uint256,uint256){
-        uint256 available = remainingTokens - 200000000 * 1 ether;
+        uint256 available = remainingTokens - 2000000 * 1 ether;
         if(available >= _amount){
             remainingTokens -= _amount;
             return (_amount * 9/4, 0);
@@ -139,7 +139,7 @@ contract PreICO {
     /* Add 100% bonus */
     /// @param _amount NTRY tokens inverster have purchased
     function levelTwoBonus(uint256 _amount)returns(uint256,uint256){
-        uint256 available = remainingTokens - 100000000 * 1 ether;
+        uint256 available = remainingTokens - 1000000 * 1 ether;
         if(available >= _amount){
             remainingTokens -= _amount;
             return (_amount * 2, 0);
