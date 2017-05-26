@@ -19,9 +19,9 @@ contract PreICO {
     
     address public beneficiary;
     uint256 public constant tokensAsReward =  3500000 * 1 ether;
-    uint256 public constant tokensAsBonuses =  3500000 * 1 ether;
+
     uint public constant PRICE = 1000;                 // 1 ether = 1000 NTRY tokens
-    uint256 constant minimumFundingGoal = 3000;
+    uint256 constant minimumFundingGoal = 3400;
     
     uint constant deadline = now + (30 * 1 minutes);   // Time limit for PRE-ICO
     uint256 remainingTokens = tokensAsReward;
@@ -54,10 +54,10 @@ contract PreICO {
             return;
         }       // return if pre-ico is closed or received funds are zero
         uint256 amount = msg.value * PRICE;                // calculates the amount of NTRY
-        if (remainingTokens > amount){
+        if (remainingTokens >= amount){
+            amount = addBonuses(amount);
             if (notaryToken.transferFrom(tokenOwner, msg.sender, amount)){
                 amountRaised += msg.value;
-                remainingTokens -= amount;
                 contributions.push(Contribution({
                     amount: msg.value,
                     contributor: msg.sender
@@ -75,16 +75,72 @@ contract PreICO {
         }  
     }
 
-    function calcBonus(uint256 amount){
-        
+    /* For the first 1.500.000 NTRY tokens investors will get additional 125% of their investment.
+    The second 1.000.000 NTRY tokens investors will get additional 100% of their investment.
+    And for last 1.000.000 NTRY tokens investors will get additional 62.5% of their investment. */
+    /// @param amount NTRY tokens inverster get in return of fund
+    function addBonuses(uint256 amount) returns(uint256){
+        uint256 reward;
+        var (x, y) = (reward,reward);                // define type at compile at time
+        if(remainingTokens > 200000000 * 1 ether){
+            (x, y) = levelOneBonus(amount);
+             reward += x;
+            if(y != 0){
+                (x, y) = levelTwoBonus(y);
+                reward += x;
+                if(y != 0){
+                    return reward+levelThreeBonus(y);
+                }
+            }
+            return reward;
+        }else if(remainingTokens > 100000000 * 1 ether){
+            (x, y) = levelTwoBonus(amount);
+            if(y != 0){
+                return x+levelThreeBonus(y);
+            }
+            return x;
+        }else{
+            return levelThreeBonus(amount);
+        }
     }
 
+    /* Add 125% bonus */
+    /// @param amount NTRY tokens inverster have purchased
+    function levelOneBonus(uint256 amount)returns(uint256,uint256){
+        uint256 available = remainingTokens - 200000000 * 1 ether;
+        if(available >= amount){
+            remainingTokens -= amount;
+            return (amount * 9/4, 0);
+        }else{
+            remainingTokens -= available;
+            return(available * 9/4, amount - available);
+        }
+    }
+
+    /* Add 100% bonus */
+    /// @param amount NTRY tokens inverster have purchased
+    function levelTwoBonus(uint256 amount)returns(uint256,uint256){
+        uint256 available = remainingTokens - 100000000 * 1 ether;
+        if(available >= amount){
+            remainingTokens -= amount;
+            return (amount * 2, 0);
+        }else{
+            remainingTokens -= available;
+            return(available * 2, amount - available);
+        }
+    }
+
+    /* Add 62.5% bonus */
+    /// @param amount NTRY tokens inverster have purchased
+    function levelThreeBonus(uint256 amount)returns(uint256){
+        return amount * 13/8;
+    } 
 
     modifier afterDeadline() { if (now >= deadline) _; }
     
     function checkGoalReached() afterDeadline {
         if(amountRaised >= minimumFundingGoal){
-            GoalReached(owner, amountRaised);
+            GoalReached(beneficiary, amountRaised);
             returnFunds = false;
             remainingTokens = 0;
         }else{
@@ -104,7 +160,7 @@ contract PreICO {
                 if (msg.sender.send(amount)) {
                     FundTransfer(msg.sender, amount, false);
                 } else {
-                    notaryToken.balanceOf[msg.sender] = amount;
+                    // notaryToken.balanceOf[msg.sender] = amount;
                 }
             }
         }
