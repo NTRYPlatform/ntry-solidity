@@ -15,40 +15,59 @@ contract PreICO {
         uint256 amount;
         address contributor;
     }
+    
+    // public variables
     Contribution[] public contributions;
     
-    address public beneficiary;
-    uint256 public constant tokensAsReward =  3500000 * 1 ether;
-
-    uint public constant PRICE = 1000;                 // 1 ether = 1000 NTRY tokens
-    uint256 constant minimumFundingGoal = 3400;
+    address beneficiary;
     
-    uint constant deadline = now + (30 * 1 minutes);   // Time limit for PRE-ICO
+    uint256 constant tokensAsReward =  3500000 * 1 ether;
+    uint PRICE = 1000;                 // 1 ether = 1000 NTRY tokens
+    uint256 fundingGoal = 3400;
+    
     uint256 remainingTokens = tokensAsReward;
     uint256 amountRaised = 0;                          // Funds raised in ethers
-    
+   
     bool preICOClosed = false;
-
-    address private tokenOwner;                         // address of account owns total supply
-    bool private returnFunds = false;
+    bool returnFunds = false;
+    
+    uint deadline = now + (30 * 1 minutes);   // Time limit for PRE-ICO
     NTRYToken private notaryToken;
+    address private tokenOwner;       // address of account owns total supply
     
     event GoalReached(address owner, uint amountRaised);
     event LogFundingReceived(address contributor, uint amount, uint currentTotal);
     event FundTransfer(address backer, uint amount, bool isContribution);
 
     // Initialize the contract
-    function PreICO(address _tokenOwner,address _addressOfNTRYToken,address ifSuccessfulSendTo ){
+    function PreICO(address _tokenOwner,address _addressOfNTRYToken,address ifSuccessfulSendTo){
         tokenOwner = _tokenOwner; 
         notaryToken = NTRYToken(_addressOfNTRYToken);
         beneficiary = ifSuccessfulSendTo;
     }
 
+    /* Geter functions for variables */
+    
+    function preICOBeneficiaryAddress() constant returns(address){ return beneficiary; }
+    function NTRYAvailableForSale() constant returns(uint256){ return tokensAsReward; }
+    function NTRYPerEther() constant returns(uint){ return PRICE; }
+    function minimumFundingGoal() constant returns(uint256){ return fundingGoal; }
+    function remaingNTRY() constant returns(uint256){ return remainingTokens; }
+    function RaisedFunds() constant returns(uint256){ return amountRaised; }
+    function isPreICOClosed() constant returns(bool){ return preICOClosed; }
+
+    /* Set price of NTRY corresponding to ether */
+    // @param _price Number of NTRY per ether
+    function updatePrice(uint _price) returns(bool){
+        PRICE = _price;
+        return true;    
+    }
+    
     event Test(string msg);
 
     // Recieve funds and rewards tokens
     function () payable {
-        if(preICOClosed || msg.value == 0){ 
+        if(preICOClosed || msg.value <= 0){ 
             // throw;
             Test("failed at 1");
             return;
@@ -78,12 +97,12 @@ contract PreICO {
     /* For the first 1.500.000 NTRY tokens investors will get additional 125% of their investment.
     The second 1.000.000 NTRY tokens investors will get additional 100% of their investment.
     And for last 1.000.000 NTRY tokens investors will get additional 62.5% of their investment. */
-    /// @param amount NTRY tokens inverster get in return of fund
-    function addBonuses(uint256 amount) returns(uint256){
+    /// @param _amount NTRY tokens inverster get in return of fund
+    function addBonuses(uint256 _amount) returns(uint256){
         uint256 reward;
         var (x, y) = (reward,reward);                // define type at compile at time
         if(remainingTokens > 200000000 * 1 ether){
-            (x, y) = levelOneBonus(amount);
+            (x, y) = levelOneBonus(_amount);
              reward += x;
             if(y != 0){
                 (x, y) = levelTwoBonus(y);
@@ -94,52 +113,52 @@ contract PreICO {
             }
             return reward;
         }else if(remainingTokens > 100000000 * 1 ether){
-            (x, y) = levelTwoBonus(amount);
+            (x, y) = levelTwoBonus(_amount);
             if(y != 0){
                 return x+levelThreeBonus(y);
             }
             return x;
         }else{
-            return levelThreeBonus(amount);
+            return levelThreeBonus(_amount);
         }
     }
 
     /* Add 125% bonus */
-    /// @param amount NTRY tokens inverster have purchased
-    function levelOneBonus(uint256 amount)returns(uint256,uint256){
+    /// @param _amount NTRY tokens inverster have purchased
+    function levelOneBonus(uint256 _amount)returns(uint256,uint256){
         uint256 available = remainingTokens - 200000000 * 1 ether;
-        if(available >= amount){
-            remainingTokens -= amount;
-            return (amount * 9/4, 0);
+        if(available >= _amount){
+            remainingTokens -= _amount;
+            return (_amount * 9/4, 0);
         }else{
             remainingTokens -= available;
-            return(available * 9/4, amount - available);
+            return(available * 9/4, _amount - available);
         }
     }
 
     /* Add 100% bonus */
-    /// @param amount NTRY tokens inverster have purchased
-    function levelTwoBonus(uint256 amount)returns(uint256,uint256){
+    /// @param _amount NTRY tokens inverster have purchased
+    function levelTwoBonus(uint256 _amount)returns(uint256,uint256){
         uint256 available = remainingTokens - 100000000 * 1 ether;
-        if(available >= amount){
-            remainingTokens -= amount;
-            return (amount * 2, 0);
+        if(available >= _amount){
+            remainingTokens -= _amount;
+            return (_amount * 2, 0);
         }else{
             remainingTokens -= available;
-            return(available * 2, amount - available);
+            return(available * 2, _amount - available);
         }
     }
 
     /* Add 62.5% bonus */
-    /// @param amount NTRY tokens inverster have purchased
-    function levelThreeBonus(uint256 amount)returns(uint256){
-        return amount * 13/8;
+    /// @param _amount NTRY tokens inverster have purchased
+    function levelThreeBonus(uint256 _amount)returns(uint256){
+        return _amount * 13/8;
     } 
 
     modifier afterDeadline() { if (now >= deadline) _; }
     
     function checkGoalReached() afterDeadline {
-        if(amountRaised >= minimumFundingGoal){
+        if(amountRaised >= fundingGoal){
             GoalReached(beneficiary, amountRaised);
             returnFunds = false;
             remainingTokens = 0;
