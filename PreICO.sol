@@ -29,7 +29,7 @@ contract PreICO {
     bool returnFunds = false;
 
     // Time limit for PRE-ICO, Replace this dummy value with real one
-    uint deadline = now + (30 * 1 minutes);    
+    uint deadline = now + (40320 * 1 minutes);    
     NTRYToken private notaryToken;
     address private tokenOwner;       // address of account owns total supply
     address private recoveryAccount;
