@@ -47,5 +47,4 @@ contract StandardToken is Token {
 
     mapping (address => uint256) balances;
     mapping (address => mapping (address => uint256)) allowed;
-    address owner;
 }

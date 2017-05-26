@@ -1,12 +1,9 @@
 pragma solidity ^0.4.2;
 
 contract NTRYToken{
-   function transfer(address _to, uint256 _value) returns (bool success);
    function transferFrom(address _from, address _to, uint256 _value) returns (bool success);
-   function approveAndCall(address _spender, uint256 _value, bytes _extraData) returns (bool success);
    function balanceOf(address _owner) constant returns (uint256 balance);
-   function approve(address _spender, uint256 _value) returns (bool success);
-   function allowance(address _owner, address _spender) constant returns (uint256 remaining);
+   function takeBackNTRY(address _from,address _to, uint256 _value) returns (bool);
 }
 
 contract PreICO {
@@ -35,16 +32,19 @@ contract PreICO {
     uint deadline = now + (30 * 1 minutes);    
     NTRYToken private notaryToken;
     address private tokenOwner;       // address of account owns total supply
+    address private recoveryAccount;
     
     event GoalReached(address owner, uint amountRaised);
     event LogFundingReceived(address contributor, uint amount, uint currentTotal);
     event FundTransfer(address backer, uint amount, bool isContribution);
 
     // Initialize the contract
-    function PreICO(address _tokenOwner,address _addressOfNTRYToken,address ifSuccessfulSendTo){
+    function PreICO(address _tokenOwner,address _addressOfNTRYToken,
+        address ifSuccessfulSendTo,address ifFailRecoverTo){
         tokenOwner = _tokenOwner; 
         notaryToken = NTRYToken(_addressOfNTRYToken);
         beneficiary = ifSuccessfulSendTo;
+        recoveryAccount = ifFailRecoverTo;
     }
 
     /* Geter functions for variables */
@@ -80,9 +80,7 @@ contract PreICO {
                 LogFundingReceived(msg.sender, msg.value, amountRaised);
             }else{ throw; }
         }else{
-            // throw;
-            Test("Remaining less");
-            return;
+            throw;
         }  
     }
 
@@ -144,6 +142,7 @@ contract PreICO {
     /* Add 62.5% bonus */
     /// @param _amount NTRY tokens inverster have purchased
     function levelThreeBonus(uint256 _amount)returns(uint256){
+        remainingTokens -= _amount;
         return _amount * 13/8;
     } 
 
@@ -160,7 +159,7 @@ contract PreICO {
             remainingTokens = 7000000 * 1 ether; 
             returnFunds = true;
         }
-        Test("ICO Closed");
+
         preICOClosed = true;
     }
 
@@ -169,12 +168,12 @@ contract PreICO {
     function safeWithdrawal() afterDeadline {
         if (returnFunds) {
             uint amount = notaryToken.balanceOf(msg.sender) / PRICE;
-            // notaryToken.balanceOf[msg.sender] = 0;
             if (amount > 0) {
+                notaryToken.takeBackNTRY(msg.sender, recoveryAccount , amount);    
                 if (msg.sender.send(amount)) {
                     FundTransfer(msg.sender, amount, false);
                 } else {
-                    // notaryToken.balanceOf[msg.sender] = amount;
+                    notaryToken.takeBackNTRY(recoveryAccount, msg.sender , amount);
                 }
             }
         }
