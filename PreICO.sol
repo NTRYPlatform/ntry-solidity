@@ -8,19 +8,28 @@ contract NTRYToken{
 
 contract PreICO {
     
+    event Notification(string msg);
+    event Notification(string msg,uint256 value);
+    
+    address owner;
+    modifier onlyOwner {if (msg.sender != owner) throw; _;}
+
     struct Contribution {
         uint256 amount;
+        uint currentPrice;
+        uint256 NTRY;
         address contributor;
     }
     
     // public variables
     Contribution[] public contributions;
+    mapping (address => Contribution) rewardLedger;
     
     address beneficiary;
     
     uint256 constant tokensAsReward =  3500000 * 1 ether;
     uint PRICE = 1000;                 // 1 ether = 1000 NTRY tokens
-    uint256 fundingGoal = 3480;
+    uint256 fundingGoal = 3480 * 1 ether;
     
     uint256 remainingTokens = tokensAsReward;
     uint256 amountRaised = 0;                          // Funds raised in ethers
@@ -29,7 +38,7 @@ contract PreICO {
     bool returnFunds = false;
 
     // Time limit for PRE-ICO, Replace this dummy value with real one
-    uint deadline = now + (40320 * 1 minutes);    
+    uint deadline = now + (3 * 1 minutes);    
     NTRYToken private notaryToken;
     address private tokenOwner;       // address of account owns total supply
     address private recoveryAccount;
@@ -39,9 +48,10 @@ contract PreICO {
     event FundTransfer(address backer, uint amount, bool isContribution);
 
     // Initialize the contract
-    function PreICO(address _tokenOwner,address _addressOfNTRYToken,
-        address ifSuccessfulSendTo,address ifFailRecoverTo){
-        tokenOwner = _tokenOwner; 
+    function PreICO(address _contractOwner,address _tokenOwner,
+        address _addressOfNTRYToken, address ifSuccessfulSendTo,address ifFailRecoverTo){
+        owner = _contractOwner;
+        tokenOwner = _tokenOwner;
         notaryToken = NTRYToken(_addressOfNTRYToken);
         beneficiary = ifSuccessfulSendTo;
         recoveryAccount = ifFailRecoverTo;
@@ -59,9 +69,8 @@ contract PreICO {
 
     /* Set price of NTRY corresponding to ether */
     // @param _price Number of NTRY per ether
-    function updatePrice(uint _price) returns(bool){
-        PRICE = _price;
-        return true;    
+    function updatePrice(uint _price) onlyOwner {
+        PRICE = _price;  
     }
 
     // Recieve funds and rewards tokens
@@ -72,17 +81,38 @@ contract PreICO {
             amount = addBonuses(amount);
             if (notaryToken.transferFrom(tokenOwner, msg.sender, amount)){
                 amountRaised += msg.value;
-                contributions.push(Contribution({
-                    amount: msg.value,
-                    contributor: msg.sender
-                    })
-                );
+                updateRewardLedger(msg.sender,msg.value,amount);
                 LogFundingReceived(msg.sender, msg.value, amountRaised);
             }else{ throw; }
         }else{
             throw;
         }  
     }
+    
+    function updateRewardLedger(address _contributor,uint256 eth,uint256 ntry) {
+        if (rewardLedger[_contributor].contributor == 0){
+            Notification("Contributions exist already");
+            rewardLedger[_contributor] = Contribution({
+                amount: eth,
+                currentPrice: PRICE,
+                NTRY: ntry,
+                contributor: _contributor
+            });
+            contributions.push(rewardLedger[_contributor]);
+        }else{
+            rewardLedger[_contributor].amount += eth;
+            rewardLedger[_contributor].currentPrice = 0;
+            rewardLedger[_contributor].NTRY += ntry;
+            contributions.push(Contribution({
+                    amount: eth,
+                    currentPrice: PRICE,
+                    NTRY: ntry,
+                    contributor: _contributor
+                    })
+            );
+        }
+    }
+    
 
     /* For the first 1.500.000 NTRY tokens investors will get additional 125% of their investment.
     The second 1.000.000 NTRY tokens investors will get additional 100% of their investment.
@@ -163,17 +193,21 @@ contract PreICO {
         preICOClosed = true;
     }
 
+
      // In case of success funds will be transferred to beneficiary otherwise 
      // contributors can safely withdraw their funds
     function safeWithdrawal() afterDeadline {
         if (returnFunds) {
-            uint amount = notaryToken.balanceOf(msg.sender) / PRICE;
-            if (amount > 0) {
-                notaryToken.takeBackNTRY(msg.sender, recoveryAccount , amount);    
-                if (msg.sender.send(amount)) {
-                    FundTransfer(msg.sender, amount, false);
+            while (rewardLedger[msg.sender].NTRY > 0) {
+                Notification("Amount to be returned: ", rewardLedger[msg.sender].amount);
+                Notification("NOtary to be returned: ", rewardLedger[msg.sender].NTRY);
+            
+                notaryToken.takeBackNTRY(msg.sender, recoveryAccount , rewardLedger[msg.sender].NTRY);
+                if (msg.sender.send(rewardLedger[msg.sender].amount)) {
+                    FundTransfer(msg.sender, rewardLedger[msg.sender].amount, false);
+                    delete rewardLedger[msg.sender];
                 } else {
-                    notaryToken.takeBackNTRY(recoveryAccount, msg.sender , amount);
+                    notaryToken.takeBackNTRY(recoveryAccount, msg.sender , rewardLedger[msg.sender].NTRY);    
                 }
             }
         }
@@ -187,4 +221,10 @@ contract PreICO {
         }
     }
 
+    function mortal() {
+        uint256 expire = deadline + (40320 * 1 minutes); 
+        if (now >= expire && beneficiary == msg.sender){
+            beneficiary.send(amountRaised);
+        }
+    }
 }

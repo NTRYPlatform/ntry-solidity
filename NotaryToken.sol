@@ -20,10 +20,7 @@ contract NotaryToken is StandardToken{
     address owner;
     mapping (address => bool) associateContracts;
 
-    modifier onlyOwner {
-        if (msg.sender != owner) throw;
-        _;
-    }
+    modifier onlyOwner { if (msg.sender != owner) throw; _; }
 
     /* Public variables of the token */
     string public name = "Notary Platform Token";
@@ -32,12 +29,13 @@ contract NotaryToken is StandardToken{
     string public version = 'NTRY-1.0';
 
     function NotaryToken(address _owner) {
+        owner = _owner;
         /* Total supply is One hundred and fifty million (150,000,000)*/
         balances[_owner] = 150000000 * 1 ether;
         totalSupply = 150000000 * 1 ether;
 
-        unlockedAt =  now + 365 * 1 days;   // Unlock NTRY tokens for team
         balances[_owner] -= teamAllocations;
+        unlockedAt =  now + 365 * 1 days;   // Freez notary team funds for one year
     }
 
     /* Approves and then calls the receiving contract */
@@ -58,7 +56,10 @@ contract NotaryToken is StandardToken{
             balances[_from] -= _value;
             balances[_to] += _value;
             return true;
-        }else{ return false; }
+        }else{
+            return false;
+        }
+        
     }
 
     function newAssociate(address _addressOfAssociate) onlyOwner {
@@ -85,13 +86,12 @@ contract NotaryToken is StandardToken{
     uint256 constant teamAllocations = 15000000 * 1 ether;
     uint256 unlockedAt;
     mapping (address => uint256) allocations;
-    function Allocate() {
-        
+    function allocate() onlyOwner {
         allocations[0xab1cb1740344A9280dC502F3B8545248Dc3045eA] = 2500000 * 1 ether;
         allocations[0x330709A59Ab2D1E1105683F92c1EE8143955a357] = 2500000 * 1 ether;
         allocations[0xAa0887fc6e8896C4A80Ca3368CFd56D203dB39db] = 2500000 * 1 ether;
         allocations[0x1fbA1d22435DD3E7Fa5ba4b449CC550a933E72b3] = 2500000 * 1 ether;
-        // allocations[Bilal] = 500000 * 1 ether;
+        allocations[0xC9d5E2c7e40373ae576a38cD7e62E223C95aBFD4] = 500000 * 1 ether;
         allocations[0xabc0B64a38DE4b767313268F0db54F4cf8816D9C] = 500000 * 1 ether;
         allocations[0x5d85bCDe5060C5Bd00DBeDF5E07F43CE3Ccade6f] = 250000 * 1 ether;
         allocations[0xecb1b0231CBC0B04015F9e5132C62465C128B578] = 250000 * 1 ether;
@@ -104,9 +104,11 @@ contract NotaryToken is StandardToken{
         allocations[0xC9856112DCb8eE449B83604438611EdCf61408AF] = 200000 * 1 ether;
         allocations[0x689CCfEABD99081D061aE070b1DA5E1f6e4B9fB2] = 2000000 * 1 ether;
     }
-
+   
     function withDraw(){
-        if(now < unlockedAt) return;
+        if(now < unlockedAt){ 
+            return;
+        }
         if(allocations[msg.sender] > 0){
             balances[msg.sender] += allocations[msg.sender];
             allocations[msg.sender] = 0;
