@@ -35,7 +35,7 @@ contract NotaryToken is StandardToken{
         totalSupply = 150000000 * 1 ether;
 
         balances[_owner] -= teamAllocations;
-        unlockedAt =  now + 365 * 1 days;   // Freez notary team funds for one year
+        unlockedAt =  now + 365 * 1 days;   // Freeze notary team funds for one year
     }
 
     /* Approves and then calls the receiving contract */

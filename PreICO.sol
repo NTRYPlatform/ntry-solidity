@@ -2,15 +2,11 @@ pragma solidity ^0.4.2;
 
 contract NTRYToken{
    function transferFrom(address _from, address _to, uint256 _value) returns (bool success);
-   function balanceOf(address _owner) constant returns (uint256 balance);
    function takeBackNTRY(address _from,address _to, uint256 _value) returns (bool);
 }
 
 contract PreICO {
-    
-    event Notification(string msg);
-    event Notification(string msg,uint256 value);
-    
+   
     address owner;
     modifier onlyOwner {if (msg.sender != owner) throw; _;}
 
@@ -23,13 +19,13 @@ contract PreICO {
     
     // public variables
     Contribution[] public contributions;
-    mapping (address => Contribution) rewardLedger;
+    mapping (address => Contribution) rewardsLedger;
     
     address beneficiary;
     
     uint256 constant tokensAsReward =  3500000 * 1 ether;
-    uint PRICE = 1000;                 // 1 ether = 1000 NTRY tokens
-    uint256 fundingGoal = 3480 * 1 ether;
+    uint PRICE = 875;                 // 1 ether = 875 NTRY tokens
+    uint256 fundingGoal = 3990 * 1 ether;
     
     uint256 remainingTokens = tokensAsReward;
     uint256 amountRaised = 0;                          // Funds raised in ethers
@@ -37,10 +33,9 @@ contract PreICO {
     bool preICOClosed = false;
     bool returnFunds = false;
 
-    // Time limit for PRE-ICO, Replace this dummy value with real one
-    uint deadline = now + (3 * 1 minutes);    
+    // Time limit for PRE-ICO
+    uint public deadline = now + (40320 * 1 minutes);    
     NTRYToken private notaryToken;
-    address private tokenOwner;       // address of account owns total supply
     address private recoveryAccount;
     
     event GoalReached(address owner, uint amountRaised);
@@ -48,13 +43,12 @@ contract PreICO {
     event FundTransfer(address backer, uint amount, bool isContribution);
 
     // Initialize the contract
-    function PreICO(address _contractOwner,address _tokenOwner,
-        address _addressOfNTRYToken, address ifSuccessfulSendTo,address ifFailRecoverTo){
-        owner = _contractOwner;
-        tokenOwner = _tokenOwner;
-        notaryToken = NTRYToken(_addressOfNTRYToken);
-        beneficiary = ifSuccessfulSendTo;
-        recoveryAccount = ifFailRecoverTo;
+    function PreICO(address _tokenOwner, address _addressOfNTRYTokenContract,
+                     address ifSuccessfulSendTo,address ifFailRecoverTo){
+        owner = _tokenOwner;
+        notaryToken = NTRYToken(_addressOfNTRYTokenContract);
+        beneficiary = ifSuccessfulSendTo;   
+        recoveryAccount = ifFailRecoverTo;  // In case pre-ICO failed, NTRY will be recoverd back to this address
     }
 
     /* Geter functions for variables */
@@ -73,13 +67,17 @@ contract PreICO {
         PRICE = _price;  
     }
 
+    function transferOwnership(address _newOwner) onlyOwner {
+        owner = _newOwner;
+    }
+
     // Recieve funds and rewards tokens
     function () payable {
         if(preICOClosed || msg.value <= 0){ throw; }       // return if pre-ico is closed or received funds are zero
         uint256 amount = msg.value * PRICE;                // calculates the amount of NTRY
         if (remainingTokens >= amount){
             amount = addBonuses(amount);
-            if (notaryToken.transferFrom(tokenOwner, msg.sender, amount)){
+            if (notaryToken.transferFrom(owner, msg.sender, amount)){
                 amountRaised += msg.value;
                 updateRewardLedger(msg.sender,msg.value,amount);
                 LogFundingReceived(msg.sender, msg.value, amountRaised);
@@ -90,19 +88,18 @@ contract PreICO {
     }
     
     function updateRewardLedger(address _contributor,uint256 eth,uint256 ntry) {
-        if (rewardLedger[_contributor].contributor == 0){
-            Notification("Contributions exist already");
-            rewardLedger[_contributor] = Contribution({
+        if (rewardsLedger[_contributor].contributor == 0){
+            rewardsLedger[_contributor] = Contribution({
                 amount: eth,
                 currentPrice: PRICE,
                 NTRY: ntry,
                 contributor: _contributor
             });
-            contributions.push(rewardLedger[_contributor]);
+            contributions.push(rewardsLedger[_contributor]);
         }else{
-            rewardLedger[_contributor].amount += eth;
-            rewardLedger[_contributor].currentPrice = 0;
-            rewardLedger[_contributor].NTRY += ntry;
+            rewardsLedger[_contributor].amount += eth;
+            rewardsLedger[_contributor].currentPrice = 0;
+            rewardsLedger[_contributor].NTRY += ntry;
             contributions.push(Contribution({
                     amount: eth,
                     currentPrice: PRICE,
@@ -186,7 +183,7 @@ contract PreICO {
         }else{
             // In case of failing funds are transferred to team members  account; 
             // they will try to find resources to finance further development
-            remainingTokens = 7000000 * 1 ether; 
+            remainingTokens = 0; 
             returnFunds = true;
         }
 
@@ -198,16 +195,15 @@ contract PreICO {
      // contributors can safely withdraw their funds
     function safeWithdrawal() afterDeadline {
         if (returnFunds) {
-            while (rewardLedger[msg.sender].NTRY > 0) {
-                Notification("Amount to be returned: ", rewardLedger[msg.sender].amount);
-                Notification("NOtary to be returned: ", rewardLedger[msg.sender].NTRY);
-            
-                notaryToken.takeBackNTRY(msg.sender, recoveryAccount , rewardLedger[msg.sender].NTRY);
-                if (msg.sender.send(rewardLedger[msg.sender].amount)) {
-                    FundTransfer(msg.sender, rewardLedger[msg.sender].amount, false);
-                    delete rewardLedger[msg.sender];
+            if (rewardsLedger[msg.sender].NTRY > 0) {
+                if(notaryToken.takeBackNTRY(msg.sender, recoveryAccount , rewardsLedger[msg.sender].NTRY)){
+                    return;
+                }
+                if (msg.sender.send(rewardsLedger[msg.sender].amount)) {
+                    FundTransfer(msg.sender, rewardsLedger[msg.sender].amount, false);
+                    delete rewardsLedger[msg.sender];
                 } else {
-                    notaryToken.takeBackNTRY(recoveryAccount, msg.sender , rewardLedger[msg.sender].NTRY);    
+                    notaryToken.takeBackNTRY(recoveryAccount, msg.sender , rewardsLedger[msg.sender].NTRY);    
                 }
             }
         }
@@ -224,7 +220,7 @@ contract PreICO {
     function mortal() {
         uint256 expire = deadline + (40320 * 1 minutes); 
         if (now >= expire && beneficiary == msg.sender){
-            beneficiary.send(amountRaised);
+            beneficiary.transfer(amountRaised);
         }
     }
 }
