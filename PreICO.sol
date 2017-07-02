@@ -201,6 +201,7 @@ contract PreICO {
                 }
                 if (msg.sender.send(rewardsLedger[msg.sender].amount)) {
                     FundTransfer(msg.sender, rewardsLedger[msg.sender].amount, false);
+                    amountRaised -= rewardsLedger[msg.sender].amount;
                     delete rewardsLedger[msg.sender];
                 } else {
                     notaryToken.takeBackNTRY(recoveryAccount, msg.sender , rewardsLedger[msg.sender].NTRY);    
