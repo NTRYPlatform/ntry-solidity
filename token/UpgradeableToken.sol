@@ -69,11 +69,11 @@ contract UpgradeableToken is NTRYStandardToken {
       // Validate input value.
       if (value == 0) doThrow("Value to upgrade is zero!");
 
-      balances[msg.sender] = safeSub(balances[msg.sender], value);
+      balances[msg.sender] = balances[msg.sender].sub(value);
 
       // Take tokens out from circulation
-      totalSupply = safeSub(totalSupply, value);
-      totalUpgraded = safeAdd(totalUpgraded, value);
+      totalSupply = totalSupply.sub(value);
+      totalUpgraded = totalUpgraded.add(value);
 
       // Upgrade agent reissues the tokens
       upgradeAgent.upgradeFrom(msg.sender, value);
@@ -90,7 +90,7 @@ contract UpgradeableToken is NTRYStandardToken {
         doThrow("Token state is not feasible for upgrading yet!");
       }
 
-      if (agent == 0x0) doThrow("Invalid address!");;
+      if (agent == 0x0) doThrow("Invalid address!");
       // Only a master can designate the next agent
       if (msg.sender != upgradeMaster) doThrow("Only upgrade master!");
       // Upgrade has already begun for an agent

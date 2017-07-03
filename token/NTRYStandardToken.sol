@@ -20,11 +20,13 @@ import './ErrorHandler.sol';
  * Based on code by FirstBlood:
  * https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
  */
-contract NTRYStandardToken is ERC20, SafeMath, ErrorHandler {
+contract NTRYStandardToken is ERC20, ErrorHandler {
   address public owner;
 
   /* NTRY functional is paused if there is any emergency */
   bool public emergency = false;
+
+  using SafeMath for uint;
 
   /* Actual balances of token holders */
   mapping(address => uint) balances;
@@ -76,8 +78,8 @@ contract NTRYStandardToken is ERC20, SafeMath, ErrorHandler {
     // Check if frozen //
     if (frozenAccount[msg.sender]) doThrow("Account freezed!");  
                   
-    balances[msg.sender] = safeSub(balances[msg.sender], _value);
-    balances[_to] = safeAdd(balances[_to], _value);
+    balances[msg.sender] = balances[msg.sender].sub( _value);
+    balances[_to] = balances[_to].add(_value);
     Transfer(msg.sender, _to, _value);
     return true;
   }
@@ -88,9 +90,9 @@ contract NTRYStandardToken is ERC20, SafeMath, ErrorHandler {
 
     uint _allowance = allowed[_from][msg.sender];
 
-    balances[_to] = safeAdd(balances[_to], _value);
-    balances[_from] = safeSub(balances[_from], _value);
-    allowed[_from][msg.sender] = safeSub(_allowance, _value);
+    balances[_to] = balances[_to].add(_value);
+    balances[_from] = balances[_from].sub(_value);
+    allowed[_from][msg.sender] = _allowance.sub(_value);
     Transfer(_from, _to, _value);
     return true;
   }
@@ -124,7 +126,7 @@ contract NTRYStandardToken is ERC20, SafeMath, ErrorHandler {
   * @param _stop Switch the circuite breaker on or off
   */
   function emergencyStop(bool _stop) onlyOwner {
-      stopped = _stop;
+      emergency = _stop;
   }
 
   /**

@@ -28,27 +28,25 @@ contract CentrallyIssuedToken is BurnableToken, UpgradeableToken {
   string public symbol;
   uint public decimals;
 
-  function CentrallyIssuedToken() {
+  function CentrallyIssuedToken(address _owner) UpgradeableToken(owner) {
     name = "Notary Platform Token";
     symbol = "NTRY";
     decimals = 18;
-    //owner = <>;
+    owner = _owner;
 
     totalSupply = 150000000 * 1 ether;
     
     // Allocate initial balance to the owner //
     balances[owner] = 150000000 * 1 ether;
 
-    UpgradeableToken(owner);
-
-    // Freeze notary team funds for one year //
-    unlockedAt =  now + 330 * 1 days;   
+    // Freeze notary team funds for one year (One month with pre ico already passed)//
+    unlockedAt =  now + 330 * 1 days;
   }
 
   uint256 public constant teamAllocations = 15000000 * 1 ether;
   uint256 public unlockedAt;
   mapping (address => uint256) allocations;
-  function allocate() onlyOwner {
+  function allocate() public {
       allocations[0xab1cb1740344A9280dC502F3B8545248Dc3045eA] = 2500000 * 1 ether;
       allocations[0x330709A59Ab2D1E1105683F92c1EE8143955a357] = 2500000 * 1 ether;
       allocations[0xAa0887fc6e8896C4A80Ca3368CFd56D203dB39db] = 2500000 * 1 ether;
@@ -67,16 +65,18 @@ contract CentrallyIssuedToken is BurnableToken, UpgradeableToken {
       allocations[0x689CCfEABD99081D061aE070b1DA5E1f6e4B9fB2] = 2000000 * 1 ether;
   }
 
-  function withDraw(){
+  function withDraw() public {
       if(now < unlockedAt){ 
-          return;
+          doThrow("Allocations are freezed!");
       }
-      if(allocations[msg.sender] > 0){
-          balances[owner] -= allocations[msg.sender];
-          balances[msg.sender] += allocations[msg.sender];
-          Transfer(owner, msg.sende, allocations[msg.sender]);
-          allocations[msg.sender] = 0;
+      if (allocations[msg.sender] == 0){
+          doThrow("No allocation found!");
       }
+      balances[owner] -= allocations[msg.sender];
+      balances[msg.sender] += allocations[msg.sender];
+      Transfer(owner, msg.sender, allocations[msg.sender]);
+      allocations[msg.sender] = 0;
+      
   }
 
 }
