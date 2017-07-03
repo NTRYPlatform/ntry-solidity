@@ -79,4 +79,9 @@ contract CentrallyIssuedToken is BurnableToken, UpgradeableToken {
       
   }
 
+   function () {
+        //if ether is sent to this address, send it back.
+        throw;
+    }
+
 }
