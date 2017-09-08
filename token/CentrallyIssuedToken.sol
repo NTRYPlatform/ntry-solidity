@@ -6,7 +6,7 @@
  *  https://github.com/TokenMarketNet/ico/blob/master/contracts
  *  https://github.com/ConsenSys/Tokens/blob/master/Token_Contracts/contracts
  */
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.16;
 
 import "./BurnableToken.sol";
 import "./UpgradeableToken.sol";
@@ -29,6 +29,7 @@ contract CentrallyIssuedToken is BurnableToken, UpgradeableToken {
   uint public decimals;
 
   function CentrallyIssuedToken(address _owner) UpgradeableToken(owner) {
+    require(_owner != 0X00);
     name = "Notary Platform Token";
     symbol = "NTRY";
     decimals = 18;
@@ -66,12 +67,8 @@ contract CentrallyIssuedToken is BurnableToken, UpgradeableToken {
   }
 
   function withDraw() public {
-      if(now < unlockedAt){ 
-          doThrow("Allocations are freezed!");
-      }
-      if (allocations[msg.sender] == 0){
-          doThrow("No allocation found!");
-      }
+      require(now < unlockedAt);
+      require(allocations[msg.sender] == 0);
       balances[owner] -= allocations[msg.sender];
       balances[msg.sender] += allocations[msg.sender];
       Transfer(owner, msg.sender, allocations[msg.sender]);
@@ -81,7 +78,7 @@ contract CentrallyIssuedToken is BurnableToken, UpgradeableToken {
 
    function () {
         //if ether is sent to this address, send it back.
-        throw;
+        revert();
     }
 
 }

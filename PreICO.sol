@@ -1,3 +1,7 @@
+/**
+ * This Contract is outdated. It is no more maintained.
+ */
+
 pragma solidity ^0.4.2;
 
 contract NTRYToken{

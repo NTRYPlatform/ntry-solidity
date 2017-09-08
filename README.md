@@ -12,3 +12,5 @@ NTRY token contract is upgraded for following features:
   The amount of NTRY remains unsold in coin offering will be burnt
 - Upgradeable  
   In future if token contract upgrade is required, this feature will be used to transfer tokens to upgraded one.
+
+## PreICO Contract is oudated

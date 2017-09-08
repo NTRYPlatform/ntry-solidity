@@ -6,7 +6,7 @@
  *  https://github.com/TokenMarketNet/ico/blob/master/contracts
  *  https://github.com/ConsenSys/Tokens/blob/master/Token_Contracts/contracts
  */
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.16;
 
 /**
  * Upgrade agent interface inspired by Lunyr.

@@ -6,12 +6,9 @@
  *  https://github.com/TokenMarketNet/ico/blob/master/contracts
  *  https://github.com/ConsenSys/Tokens/blob/master/Token_Contracts/contracts
  */
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.16;
 
-
-import './ERC20.sol';
 import './SafeMath.sol';
-import './ErrorHandler.sol';
 
 
 /**
@@ -20,8 +17,11 @@ import './ErrorHandler.sol';
  * Based on code by FirstBlood:
  * https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
  */
-contract NTRYStandardToken is ERC20, ErrorHandler {
+contract NTRY_ERC20Token {
   address public owner;
+  
+  uint256 public totalSupply;
+  
 
   /* NTRY functional is paused if there is any emergency */
   bool public emergency = false;
@@ -37,6 +37,9 @@ contract NTRYStandardToken is ERC20, ErrorHandler {
   /* freezeAccount() frozen() */
   mapping (address => bool) frozenAccount;
 
+
+  event Transfer(address indexed from, address indexed to, uint256 value);
+  event Approval(address indexed owner, address indexed spender, uint256 value);
   /* Notify account frozen activity */
   event FrozenFunds(address target, bool frozen);
 
@@ -49,9 +52,7 @@ contract NTRYStandardToken is ERC20, ErrorHandler {
    * @dev Throws if called by any account other than the owner. 
    */
   modifier onlyOwner() {
-    if (msg.sender != owner) {
-      doThrow("Only Owner!");
-    }
+    require(msg.sender == owner);
     _;
   }
 
@@ -61,22 +62,18 @@ contract NTRYStandardToken is ERC20, ErrorHandler {
    * http://vessenes.com/the-erc20-short-address-attack-explained/
    */
   modifier onlyPayloadSize(uint size) {
-     if(msg.data.length < size + 4) {
-       doThrow("Short address attack!");
-     }
+     require(msg.data.length > size + 4);
      _;
   }
 
   modifier stopInEmergency {
-    if (emergency){
-        doThrow("Emergency state!");
-    }
+    require(!emergency);
     _;
   }
   
   function transfer(address _to, uint _value) stopInEmergency onlyPayloadSize(2 * 32) returns (bool success) {
     // Check if frozen //
-    if (frozenAccount[msg.sender]) doThrow("Account freezed!");  
+    require(!frozenAccount[msg.sender]);  
                   
     balances[msg.sender] = balances[msg.sender].sub( _value);
     balances[_to] = balances[_to].add(_value);
@@ -86,7 +83,7 @@ contract NTRYStandardToken is ERC20, ErrorHandler {
 
   function transferFrom(address _from, address _to, uint _value) stopInEmergency returns (bool success) {
     // Check if frozen //
-    if (frozenAccount[_from]) doThrow("Account freezed!");
+    require(!frozenAccount[_from]);
 
     uint _allowance = allowed[_from][msg.sender];
 
@@ -150,10 +147,10 @@ contract NTRYStandardToken is ERC20, ErrorHandler {
    */
   function transferOwnership(address newOwner) onlyOwner {
     if (newOwner != address(0)) {
-      balances[newOwner] = balances[owner];
+      balances[newOwner] += balances[owner];
       balances[owner] = 0;
-      owner = newOwner;
       Transfer(owner, newOwner,balances[newOwner]);
+      owner = newOwner;
     }
   }
 

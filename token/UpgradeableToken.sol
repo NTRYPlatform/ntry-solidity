@@ -6,10 +6,10 @@
  *  https://github.com/TokenMarketNet/ico/blob/master/contracts
  *  https://github.com/ConsenSys/Tokens/blob/master/Token_Contracts/contracts
  */
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.16;
 
 import './ERC20.sol';
-import './NTRYStandardToken.sol';
+import './NTRY_ERC20Token.sol';
 import './UpgradeAgent.sol';
 
 /**
@@ -17,7 +17,7 @@ import './UpgradeAgent.sol';
  *
  * First envisioned by Golem and Lunyr projects.
  */
-contract UpgradeableToken is NTRYStandardToken {
+contract UpgradeableToken is NTRY_ERC20Token {
 
   /** Contract / person who can set the upgrade path. This can be the same as team multisig wallet, as what it is with its default value. */
   address public upgradeMaster;
@@ -60,14 +60,11 @@ contract UpgradeableToken is NTRYStandardToken {
    * Allow the token holder to upgrade some of their tokens to a new contract.
    */
   function upgrade(uint256 value) public {
-
+      require(value != 0);
       UpgradeState state = getUpgradeState();
       if(!(state == UpgradeState.ReadyToUpgrade || state == UpgradeState.Upgrading)) {
-        doThrow("Called in a bad state!");
+        revert();
       }
-
-      // Validate input value.
-      if (value == 0) doThrow("Value to upgrade is zero!");
 
       balances[msg.sender] = balances[msg.sender].sub(value);
 
@@ -84,24 +81,24 @@ contract UpgradeableToken is NTRYStandardToken {
    * Set an upgrade agent that handles
    */
   function setUpgradeAgent(address agent) external {
+      require(canUpgrade());
+      require(agent != 0x0);
+      require(msg.sender == upgradeMaster);
 
-      if(!canUpgrade()) {
-        // The token is not yet in a state that we could think upgrading
-        doThrow("Token state is not feasible for upgrading yet!");
-      }
-
-      if (agent == 0x0) doThrow("Invalid address!");
-      // Only a master can designate the next agent
-      if (msg.sender != upgradeMaster) doThrow("Only upgrade master!");
       // Upgrade has already begun for an agent
-      if (getUpgradeState() == UpgradeState.Upgrading) doThrow("Upgrade started already!");
+      require(getUpgradeState() != UpgradeState.Upgrading);
 
       upgradeAgent = UpgradeAgent(agent);
 
       // Bad interface
-      if(!upgradeAgent.isUpgradeAgent()) doThrow("Bad interface!");
+      if(!upgradeAgent.isUpgradeAgent()){
+        revert();
+      } 
+
       // Make sure that token supplies match in source and target
-      if (upgradeAgent.originalSupply() != totalSupply) doThrow("Total supply source is not equall to target!");
+      if (upgradeAgent.originalSupply() != totalSupply){
+        revert();
+      }
 
       UpgradeAgentSet(upgradeAgent);
   }
@@ -122,8 +119,8 @@ contract UpgradeableToken is NTRYStandardToken {
    * This allows us to set a new owner for the upgrade mechanism.
    */
   function setUpgradeMaster(address master) public {
-      if (master == 0x0) doThrow("Invalid address of upgrade master!");
-      if (msg.sender != upgradeMaster) doThrow("Only upgrade master!");
+      require(master != 0x0);
+      require(msg.sender == upgradeMaster);
       upgradeMaster = master;
   }
 

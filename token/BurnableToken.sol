@@ -6,12 +6,12 @@
  *  https://github.com/TokenMarketNet/ico/blob/master/contracts
  *  https://github.com/ConsenSys/Tokens/blob/master/Token_Contracts/contracts
  */
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.16;
 
-import './NTRYStandardToken.sol';
+import './NTRY_ERC20Token.sol';
 
 
-contract BurnableToken is NTRYStandardToken {
+contract BurnableToken is NTRY_ERC20Token {
 
   address public constant BURN_ADDRESS = 0;
 
@@ -23,6 +23,7 @@ contract BurnableToken is NTRYStandardToken {
    *
    */
   function burn(uint burnAmount) {
+    require(burnAmount > 0);
     address burner = msg.sender;
     balances[burner] = balances[burner].sub(burnAmount);
     totalSupply = totalSupply.sub(burnAmount);
