@@ -1,5 +1,5 @@
 /**
- * This Contract is outdated. It is no more maintained.
+ * This Contract is outdated.
  */
 
 pragma solidity ^0.4.2;
