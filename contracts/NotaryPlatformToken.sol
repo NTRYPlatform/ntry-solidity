@@ -42,7 +42,7 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
   * @param _to The address to transfer to.
   * @param _value The amount to be transferred.
   */
-  function transfer(address _to, uint256 _value) external whenNotPaused returns (bool) {
+  function transfer(address _to, uint256 _value) external whenNotPaused onlyPayloadSize(2 * 32) returns (bool) {
     require(_to != address(0));
     balances[msg.sender] = balances[msg.sender].sub(_value);
     balances[_to] = balances[_to].add(_value);
@@ -194,6 +194,17 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
   modifier isUpgrading() { 
     require(upgrading); 
     _; 
+  }
+
+
+  /**
+   * Fix for the ERC20 short address attack
+   *
+   * http://vessenes.com/the-erc20-short-address-attack-explained/
+   */
+  modifier onlyPayloadSize(uint size) {
+     require(msg.data.length > size + 4);
+     _;
   }
 
   function () {
