@@ -5,7 +5,7 @@
  *  Notary Platform
  */
 
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.16;
 
 import './Ownable.sol';
 import './SafeMath.sol';
@@ -189,6 +189,12 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
   function tweakUpgrading() external onlyOwner{
       upgrading = !upgrading;
       Upgrading(upgrading);
+  }
+
+
+  /** Interface marker */
+  function isTokenContract() external constant returns (bool) {
+    return true;
   }
 
   modifier isUpgrading() { 
