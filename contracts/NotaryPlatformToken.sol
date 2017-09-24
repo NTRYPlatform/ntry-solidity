@@ -22,8 +22,8 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
   uint8 constant decimals = 18;
   uint256 totalSupply = 150000000 * 1 ether;
 
-  mapping(address => uint256) balances;
-  mapping (address => mapping (address => uint256)) internal allowed;
+  mapping(address => uint256) private balances;
+  mapping (address => mapping (address => uint256)) private allowed;
 
   event Approval(address indexed owner, address indexed spender, uint256 value);
   event Transfer(address indexed from, address indexed to, uint256 value);
@@ -42,7 +42,7 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
   * @param _to The address to transfer to.
   * @param _value The amount to be transferred.
   */
-  function transfer(address _to, uint256 _value) external returns (bool) {
+  function transfer(address _to, uint256 _value) external whenNotPaused returns (bool) {
     require(_to != address(0));
     balances[msg.sender] = balances[msg.sender].sub(_value);
     balances[_to] = balances[_to].add(_value);
@@ -65,7 +65,7 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
    * @param _to address The address which you want to transfer to
    * @param _value uint256 the amount of tokens to be transferred
    */
-  function transferFrom(address _from, address _to, uint256 _value) external returns (bool) {
+  function transferFrom(address _from, address _to, uint256 _value) external whenNotPaused returns (bool) {
     require(_to != address(0));
 
     uint256 _allowance = allowed[_from][msg.sender];
@@ -87,7 +87,7 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
    * @param _spender The address which will spend the funds.
    * @param _value The amount of tokens to be spent.
    */
-  function approve(address _spender, uint256 _value) external returns (bool) {
+  function approve(address _spender, uint256 _value) external whenNotPaused returns (bool) {
     allowed[msg.sender][_spender] = _value;
     Approval(msg.sender, _spender, _value);
     return true;
@@ -109,13 +109,13 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
    * the first transaction is mined)
    * From MonolithDAO Token.sol
    */
-  function increaseApproval (address _spender, uint _addedValue) external returns (bool success) {
+  function increaseApproval (address _spender, uint _addedValue) external whenNotPaused returns (bool success) {
     allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
     Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
     return true;
   }
 
-  function decreaseApproval (address _spender, uint _subtractedValue) external returns (bool success) {
+  function decreaseApproval (address _spender, uint _subtractedValue) external whenNotPaused returns (bool success) {
     uint oldValue = allowed[msg.sender][_spender];
     if (_subtractedValue > oldValue) {
       allowed[msg.sender][_spender] = 0;
@@ -129,7 +129,7 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
   /**
   * @notice Transfers tokens held by timelock to beneficiary.
   */
-  function claim() external nonReentrant timeLock isTeamMember {
+  function claim() external whenNotPaused nonReentrant timeLock isTeamMember {
     balances[msg.sender] = balances[msg.sender].add(release());
   }
 
@@ -214,5 +214,4 @@ contract MigrationAgent {
   function isMigrationAgent() external constant returns (bool) {
     return true;
   }
-
 }
