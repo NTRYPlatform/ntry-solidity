@@ -179,7 +179,7 @@ contract Crowdfunding is Pausable, ReentrancyGuard {
       /**
        * @return address of NTRY tokens owner
        */
-      function tokenAddress() external constant returns(address){
+      function tokenStoreAddress() external constant returns(address){
           return tokenStore;
       }
       
