@@ -29,7 +29,6 @@ contract NotaryPlatformToken is Pausable, Allocations, ReentrancyGuard{
   event Transfer(address indexed from, address indexed to, uint256 value);
 
   function NotaryPlatformToken() Ownable(msg.sender){
-    owner = msg.sender;
     // Allocate initial balance to the owner //
     balances[owner] = 134875000 * 1 ether;  
   }
