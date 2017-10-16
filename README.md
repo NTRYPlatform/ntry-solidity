@@ -1,7 +1,8 @@
 # Notary-Platform
 
+## NotaryPlatform Token Contract
 
-NTRY token contract is upgraded for following features:
+Notary token is an ERC20 token. NTRY token contract have following features:
 - Mitigation of short address attack  
   http://vessenes.com/the-erc20-short-address-attack-explained/
 - Circuite Breaker  
@@ -10,4 +11,5 @@ NTRY token contract is upgraded for following features:
 - Upgradeable  
   In future if token contract upgrade is required, this feature will be used to transfer tokens to upgraded one.
 
+## Crowdfunding Contract
 ## PreICO Contract is oudated
